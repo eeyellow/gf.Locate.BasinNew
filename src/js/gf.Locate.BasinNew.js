@@ -81,7 +81,7 @@
                 var row1 = $('<div/>', { 'class': 'gfLocateBasinNew-Row' });
                 var lbl1 = $('<label/>', { 'class': 'gfLocateBasinNew-Label', 'text': '流域' });
                 var sel1 = $('<select/>', { 'class': 'gfLocateBasinNew-Select gfLocateBasinNew-Select1' });
-                o._getOption({}, "rivername", "rivername", sel1);
+                o._getOption("", "name", "name", sel1);
                 row1.append(lbl1);
                 row1.append(sel1);
 
@@ -108,15 +108,21 @@
                     .find('.gfLocateBasinNew-Select1')
                         .change(function(e){
                             o.target.find('.gfLocateBasinNew-Select2').empty();
-                            o._getOption({ rivername: o.target.find('.gfLocateBasinNew-Select1').val() }, "subbasinna", "subbasinna", o.target.find('.gfLocateBasinNew-Select2'));
+                            o._getOption("/" + o.target.find('.gfLocateBasinNew-Select1').val(), "name", "name", o.target.find('.gfLocateBasinNew-Select2'));
                         })
                         .end()
                     .find('.gfLocateBasinNew-Button')
-                        .click(function(e){
-                            o._getLatLng({
-                                rivername: o.target.find('.gfLocateBasinNew-Select1').val(),
-                                subbasinna: o.target.find('.gfLocateBasinNew-Select2').val()
-                            });
+                    .click(function (e) {
+                            var basinname = o.target.find('.gfLocateBasinNew-Select1').val();
+                            var subbasinname = o.target.find('.gfLocateBasinNew-Select2').val();
+                            var param = "";
+                            if (basinname != "請選擇") {
+                                param += "/" + basinname;
+                            }
+                            if (subbasinname != "請選擇") {
+                                param += "/" + subbasinname;
+                            }
+                            o._getGeom(param);
                         })
                         .end()
             },
@@ -124,9 +130,8 @@
             _getOption: function(_data, _valueField, _textField, _container){
                 var o = this;
                 $.ajax({
-                    url: o.opt.url,
-                    type: 'POST',
-                    data: _data,
+                    url: o.opt.url + _data,
+                    type: 'GET',
                     dataType: 'JSON',
                     success: function(res){
                         var defaultOption = $('<option/>', { value: "請選擇", text: "請選擇" });
@@ -140,22 +145,26 @@
                     }
                 })
             },
-            _getLatLng: function(_data){
+            _getGeom: function(_data){
                 var o = this;
                 $.ajax({
-                    url: o.opt.url,
-                    type: 'POST',
-                    data: _data,
+                    url: o.opt.url + _data + "/geom",
+                    type: 'GET',
                     dataType: 'JSON',
-                    success: function(res){
-                        o.target.trigger("onClick", {
-                            x: res[0]["x_84"] * 1,
-                            y: res[0]["y_84"] * 1,
-                            content:
-                                o.target.find('.gfLocateBasinNew-Select1 option:selected').text() + " > " +
-                                o.target.find('.gfLocateBasinNew-Select2 option:selected').text() + "<br />" +
-                                "( " + res[0]['x_84'] + " , " + res[0]['y_84'] + " )"
-                        });
+                    success: function (res) {
+                        if (res.length > 0) {
+                            var content = "";
+                            if (res[0].basin != undefined) {
+                                content += res[0].basin;
+                            }
+                            if (res[0].subbasin != undefined) {
+                                content += " > " + res[0].subbasin;
+                            }
+                            o.target.trigger("onClick", {
+                                geom: res[0].geom,
+                                content: content
+                            });
+                        }
                     }
                 })
             },
